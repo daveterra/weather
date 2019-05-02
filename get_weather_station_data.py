@@ -86,6 +86,33 @@ def loop_over_dates(args, stations):
 
     return weather_data
 
+def generate_meta_data(data):
+    #TODO: Generate metadata per station?
+    #data = filter(lambda d: d['datatype'] in ('TMAX', 'TMIN'), data)
+    meta_data = []
+
+    # Generate list of datatypes
+    datatypes=[]
+    for d in data:
+        dt = d['datatype']
+        if dt not in datatypes:
+            datatypes.append(dt)
+
+    for datatype in datatypes:
+        l = []
+        for d in data:
+            if d['datatype'] == datatype:
+                l.append(d['value'])
+
+        temp = {'datatype': datatype,
+                'min': min(l),
+                'max': max(l),
+                'avg': round(sum(l)/len(l),2),
+                'count': len(l)}
+        meta_data.append(temp)
+
+    return meta_data
+
 
 def valid_date(s):
     try:
@@ -93,6 +120,13 @@ def valid_date(s):
     except ValueError:
         msg = "Not a valid date: '{0}'.".format(s)
         raise argparse.ArgumentTypeError(msg)
+
+def write_csv(filename, to_csv):
+    with open(filename, 'w') as out:
+        keys = to_csv[0].keys()
+        dict_writer = csv.DictWriter(out, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(to_csv)
 
 def main():
     # Parse args
@@ -109,7 +143,7 @@ def main():
             required=True, type=valid_date,
             help="The  - format MM-DD")
     parser.add_argument("-n", "--num-years",
-            required=False, default=10, type=int,
+            required=False, default=1, type=int,
             help="The number of years to include in results")
     parser.add_argument("-y", "--start-year",
             required=False, default=default_start_year, type=int,
@@ -117,8 +151,8 @@ def main():
     parser.add_argument("-d", "--data-types",
             nargs="+", required=False,
             help="Space separated list of NOAA datatypes to filter on, if left blank will grab all available data")
-    parser.add_argument("-m", "--generate_meta_data",
-            required=False, action='store_true',
+    parser.add_argument("-m", "--meta-data-filename",
+            required=False,
             help="Generate metadata as part of CSV output (min, max, avg for each datatype)")
 
     args = parser.parse_args()
@@ -128,22 +162,21 @@ def main():
     print "Read %d stations from \'%s\'" % (len(stations), args.input_file)
 
     # Loop over dates...
-    data = loop_over_dates(args, stations)
+    # data = loop_over_dates(args, stations)
 
-    # import generated_data
-    # data = generated_data.weather_data
+    import generated_data
+    data = generated_data.weather_data
     with open("generated_data.py", "w") as f:
         f.write("weather_data=")
         f.write(str(data))
 
-    to_csv = data
-    keys = to_csv[0].keys()
-    print "Writing %d records to \'%s\'" % (len(to_csv), args.output_file)
-    with open(args.output_file, 'w') as out:
-        dict_writer = csv.DictWriter(out, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(to_csv)
+    print "Writing %d records to \'%s\'" % (len(data), args.output_file)
+    write_csv(args.output_file, data)
 
+    if args.meta_data_filename:
+        print "Writing meta data to \'%s\'" % (args.meta_data_filename)
+        m = generate_meta_data(data)
+        write_csv(args.meta_data_filename, m)
 
 main()
 

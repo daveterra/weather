@@ -1,4 +1,6 @@
-from noaa_api_v2 import NOAAData
+import noaa_api
+import config
+
 import csv
 import json
 import ast
@@ -12,8 +14,7 @@ input_file = "JMT_weather.json"
 output_file = "JMT_weather.csv"
 input_file = "Hat_Creek_Rim_weather.json"
 output_file = "Hat_Creek_Rim_weather.csv"
-api_token = ""
-noaa_api = NOAAData(api_token)
+noaa = noaa_api.noaa_api(config.noaa_api_token)
 
 min_mon = 9
 min_day = 27
@@ -54,7 +55,7 @@ def get_weather_data_from_stations(stations): #, start_date, end_date):
         offset = 0
         records_appended = 0
         while True:
-            d = noaa_api.fetch_data(
+            d = noaa.get_data(
                     dataset_id=dataset,
                     units='standard',
                     datatypeid='TMIN',

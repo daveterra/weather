@@ -1,4 +1,6 @@
-from noaa_api_v2 import NOAAData
+import config
+import noaa_api
+
 import json
 import uuid
 import my_utils
@@ -77,7 +79,7 @@ def meets_min_distance(location, coord_list, min_distance):
             return True
     return False
 
-def get_stations(min_coord, max_coord, noaa_api, coord_list, min_distance=10):
+def generate_station_list(min_coord, max_coord, noaa, coord_list, min_distance=10):
     ret = []
     extent= "%s, %s, %s, %s" % (min_coord['lat'],
             min_coord['long'],
@@ -86,7 +88,7 @@ def get_stations(min_coord, max_coord, noaa_api, coord_list, min_distance=10):
     steps = 10
     offset = 0
     while True:
-        locations = noaa_api.stations(
+        locations = noaa.get_stations(
                 extent=extent,
                 datasets=dataset,
                 limit=steps,
@@ -142,9 +144,9 @@ def main():
 
     min_coord, max_coord = get_min_max(lat_long_list)
 
-    api_token = ""
-    noaa_api = NOAAData(api_token)
-    stations = get_stations(min_coord, max_coord, noaa_api, lat_long_list)
+    noaa = noaa_api.noaa_api(config.noaa_api_token)
+    print noaa
+    stations = generate_station_list(min_coord, max_coord, noaa, lat_long_list)
     print "Retrieved %d stations" % (len(stations))
 
     print "Writing filtered results to \'%s\'" % (output_file)

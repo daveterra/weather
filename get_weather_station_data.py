@@ -26,7 +26,7 @@ class WeatherData:
 
         return ret
 
-    def get_weather_data_from_stations(self, stations, start_date, end_date):
+    def get_weather_data_from_stations(self, stations, start_date, end_date, datatypes):
         data = []
 
         num_stations = len(stations)
@@ -44,7 +44,7 @@ class WeatherData:
             d = self.noaa_api.get_data(
                     dataset_id=self.dataset,
                     units='standard',
-                    # datatypeid='TMIN', # TODO: Make this an input or a config
+                    datatypeid=datatypes,
                     stationid=station_ids,
                     startdate=start_date,
                     enddate=end_date,
@@ -77,7 +77,7 @@ def loop_over_dates(args, stations):
         start_date = "%s-%02d-%02d" % (cur_year, args.start_date.month, args.start_date.day)
         end_date = "%s-%02d-%02d" % (cur_year, args.end_date.month, args.end_date.day)
 
-        data = w.get_weather_data_from_stations(stations, start_date, end_date)
+        data = w.get_weather_data_from_stations(stations, start_date, end_date, args.data_types)
         print "Received %d records for dates %s - %s" % (len(data), start_date, end_date)
 
         weather_data.extend(data)
@@ -114,8 +114,15 @@ def main():
     parser.add_argument("-y", "--start-year",
             required=False, default=default_start_year, type=int,
             help="The number of years to include in results")
+    parser.add_argument("-d", "--data-types",
+            nargs="+", required=False,
+            help="Space separated list of NOAA datatypes to filter on, if left blank will grab all available data")
+    parser.add_argument("-m", "--generate_meta_data",
+            required=False, action='store_true',
+            help="Generate metadata as part of CSV output (min, max, avg for each datatype)")
 
     args = parser.parse_args()
+    print args.data_types
 
     stations = my_utils.get_station_list_from_file(args.input_file)
     print "Read %d stations from \'%s\'" % (len(stations), args.input_file)
@@ -125,12 +132,9 @@ def main():
 
     # import generated_data
     # data = generated_data.weather_data
-
     with open("generated_data.py", "w") as f:
         f.write("weather_data=")
         f.write(str(data))
-
-    data = filter(lambda d: d['datatype'] in ('TMAX', 'TMIN'), data)
 
     to_csv = data
     keys = to_csv[0].keys()

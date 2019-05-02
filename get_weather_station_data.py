@@ -14,7 +14,7 @@ input_file = "JMT_weather.json"
 output_file = "JMT_weather.csv"
 input_file = "Hat_Creek_Rim_weather.json"
 output_file = "Hat_Creek_Rim_weather.csv"
-noaa = noaa_api.noaa_api(config.noaa_api_token)
+noaa = noaa_api.NOAA(config.noaa_api_token)
 
 min_mon = 9
 min_day = 27

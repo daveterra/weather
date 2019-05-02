@@ -2,7 +2,7 @@ import noaa_api
 import json
 import config
 
-noaa = noaa_api.noaa_api(config.noaa_api_token)
+noaa = noaa_api.NOAA(config.noaa_api_token)
 
 def get_datasets():
     datasets = []

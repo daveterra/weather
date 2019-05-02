@@ -1,7 +1,7 @@
 
 import requests
 
-class noaa_api:
+class NOAA:
     def __init__(self, token):
         self.base_url = 'https://www.ncdc.noaa.gov/cdo-web/api/v2/'
         self.token = {'token': token}

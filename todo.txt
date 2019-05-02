@@ -1,6 +1,8 @@
 P0:
 * Pass in only TMIN and TMAX to avoid filtering...
 * Auto generate the snow map based on coordinates
+* Better sorting of data... 
+
 
 Pother
 * Support for trips longer than a week or so (polling API for longer may not work)

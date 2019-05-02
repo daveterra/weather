@@ -1,4 +1,5 @@
 from math import sin, cos, sqrt, atan2, radians
+import geojson
 
 
 def distance(lat1, lon1, lat2, lon2):
@@ -19,3 +20,21 @@ def distance(lat1, lon1, lat2, lon2):
     distance = R * c
 
     return distance
+
+
+def meters_to_feet(m):
+    f = (m / .3048)
+    return f
+
+def get_lat_long_list_from_file(file_name):
+    final_list = []
+    with open(file_name) as json_file:
+
+        feature_collection = geojson.load(json_file)
+        coords = list(geojson.utils.coords(feature_collection))
+
+        for x in coords:
+            final_list.append({"lat" : x[1], "long" : x[0]})
+
+        return final_list
+

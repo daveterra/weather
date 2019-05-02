@@ -11,15 +11,6 @@ import argparse
 from datetime import datetime
 from dateutil import parser
 
-noaa = noaa_api.NOAA(config.noaa_api_token)
-
-min_mon = 9
-min_day = 27
-max_mon = 10
-max_day = 14
-furthest_year = 2017
-current_year = 2019
-
 class WeatherData:
     def __init__(self, noaa_api_token, dataset='GHCND'):
         self.noaa_api = noaa_api.NOAA(noaa_api_token)
@@ -35,7 +26,7 @@ class WeatherData:
 
         return ret
 
-    def get_weather_data_from_stations(self, stations): #, start_date, end_date):
+    def get_weather_data_from_stations(self, stations, start_date, end_date):
         data = []
 
         num_stations = len(stations)
@@ -45,48 +36,56 @@ class WeatherData:
         # Build station list
         for station in stations:
             station_ids.append(station['id'])
-        cur_year = current_year
 
-        while cur_year > furthest_year:
-            start_date = "%s-%02d-%02d" % (cur_year, min_mon, min_day)
-            end_date = "%s-%02d-%02d" % (cur_year, max_mon, max_day)
+        limit = 10
+        offset = 0
+        records_appended = 0
+        while True:
+            d = self.noaa_api.get_data(
+                    dataset_id=self.dataset,
+                    units='standard',
+                    # datatypeid='TMIN', # TODO: Make this an input or a config
+                    stationid=station_ids,
+                    startdate=start_date,
+                    enddate=end_date,
+                    sortfield='date',
+                    sortorder='desc',
+                    limit=limit,
+                    offset=offset)
+            if d is None:
+                print "\tRequest failed, retrying"
+                continue
 
-            limit = 10
-            offset = 0
-            records_appended = 0
-            while True:
-                d = noaa.get_data(
-                        dataset_id=self.dataset,
-                        units='standard',
-                        datatypeid='TMIN',
-                        stationid=station_ids,
-                        startdate=start_date,
-                        enddate=end_date,
-                        sortfield='date',
-                        sortorder='desc',
-                        limit=limit,
-                        offset=offset)
-
-                print d
-                if d is None:
-                    print "\tRequest failed, retrying"
-                    continue
-
-                if len(d) <= 0:
-                    break
-                for i in d:
-                    i.update(self._get_station_elevations(i['station'], stations))
-                    records_appended += 1
-                    data.append(i)
-                offset += len(d)
-            print "\treceived %d records for year %d" % (records_appended, cur_year)
-            print "Min year: %s" % (furthest_year)
-
-            cur_year -= 1
-            if cur_year < furthest_year:
+            if len(d) <= 0:
                 break
-
+            for i in d:
+                i.update(self._get_station_elevations(i['station'], stations))
+                records_appended += 1
+                data.append(i)
+            offset += len(d)
         return data
+
+def loop_over_dates(args, stations):
+    w = WeatherData(config.noaa_api_token)
+    cur_year = args.start_year
+    num_days = args.end_date - args.start_date
+    num_years = args.num_years
+    weather_data = []
+
+    #TODO: Handle cases where number of days matters...
+    while num_years > 0:
+        start_date = "%s-%02d-%02d" % (cur_year, args.start_date.month, args.start_date.day)
+        end_date = "%s-%02d-%02d" % (cur_year, args.end_date.month, args.end_date.day)
+
+        data = w.get_weather_data_from_stations(stations, start_date, end_date)
+        print "Received %d records for dates %s - %s" % (len(data), start_date, end_date)
+
+        weather_data.extend(data)
+        num_years -= 1
+        cur_year -= 1
+
+    return weather_data
+
 
 def valid_date(s):
     try:
@@ -97,6 +96,7 @@ def valid_date(s):
 
 def main():
     # Parse args
+    default_start_year = datetime.now().year - 1
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-file',
             help="GEOJson containing weather station data. Use `generate_weather_station_json.py` first")
@@ -111,19 +111,20 @@ def main():
     parser.add_argument("-n", "--num-years",
             required=False, default=10, type=int,
             help="The number of years to include in results")
-    args = parser.parse_args()
+    parser.add_argument("-y", "--start-year",
+            required=False, default=default_start_year, type=int,
+            help="The number of years to include in results")
 
-    #TODO: This doesn't belong here: 
-    furthest_year = current_year - args.num_years
+    args = parser.parse_args()
 
     stations = my_utils.get_station_list_from_file(args.input_file)
     print "Read %d stations from \'%s\'" % (len(stations), args.input_file)
 
-    w = WeatherData(config.noaa_api_token)
+    # Loop over dates...
+    data = loop_over_dates(args, stations)
 
     # import generated_data
     # data = generated_data.weather_data
-    data = w.get_weather_data_from_stations(stations)
 
     with open("generated_data.py", "w") as f:
         f.write("weather_data=")

@@ -1,0 +1,14 @@
+P0:
+* Pass in only TMIN and TMAX to avoid filtering...
+* Auto generate the snow map based on coordinates
+
+Pother
+* Support for trips longer than a week or so (polling API for longer may not work)
+* Add support for mesowest?
+* Make command line driven, e.g. support args
+* Print errors (like when can't find weather folder)
+* Put on github for my own sake
+* Fix the loop in get station data, should take date range not generate it...
+
+DONE:
+X More efficient API usage, e.g. poll for all stations at once

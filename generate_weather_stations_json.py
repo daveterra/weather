@@ -12,6 +12,9 @@ def main(argv):
             help="GEOJson export from caltop or similar source")
     parser.add_argument('-o', '--output-file',
             help="Generates separate GEOJson file specifying nearby NOAA weather stations")
+    parser.add_argument('-d', '--distance-from-trail',
+            required=False, default=10,
+            help="Specify how far from the trail (in km) to look for weather stations")
     args = parser.parse_args()
 
     print "Reading file \'%s\'"  % (args.input_file)
@@ -19,7 +22,7 @@ def main(argv):
 
     s = StationGenerator(config.noaa_api_token)
 
-    s.generate_station_list(lat_long_list)
+    s.generate_station_list(lat_long_list, min_distance=args.distance_from_trail)
     print "Retrieved %d stations" % (len(s.station_list))
 
     print "Writing filtered results to \'%s\'" % (args.output_file)

@@ -5,10 +5,16 @@ P0:
 * Make stations an object? (Will be more important when dealing with additional sources)
   * Two things: 1) *generate* from file and 2) *load* from file
 
+
 Pother
 * Support for trips longer than a week or so (polling API for longer may not work)
 * Add support for mesowest?
 * Print errors (like when can't find weather folder)
+
+Arrange data by: 
+ * Wks (datatype)
+   * T1: All Data
+   * T2: Rows: Days of Trip, Cols: One for all stations, One for each station
 
 DONE:
 X More efficient API usage, e.g. poll for all stations at once

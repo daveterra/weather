@@ -8,6 +8,10 @@ import json
 import geojson
 import argparse
 
+import pygsheets
+from pygsheets.custom_types import ChartType
+import numpy
+
 from datetime import datetime
 from dateutil import parser
 
@@ -128,6 +132,67 @@ def write_csv(filename, to_csv):
         dict_writer.writeheader()
         dict_writer.writerows(to_csv)
 
+def write_gsheet(filename, data):
+    matrix = {}
+    keys = ['date', 'value', 'station', 'elevation']
+
+    for i in data:
+        datatype = i['datatype']
+        if datatype not in matrix:
+            matrix[datatype] = [keys]
+        row = [i[k] for k in keys]
+        matrix[datatype].append(row)
+
+
+    gc = pygsheets.authorize()
+
+    try:
+        sh = gc.open(filename)
+        sh.delete()
+    except:
+        pass
+
+    sh = gc.create(filename)
+
+    index=0
+    for datatype, data in matrix.items():
+
+        wks = sh.add_worksheet(datatype, index=index)
+        index += 1
+
+        wks.update_values('A1', data)
+
+        lastB = 'B' + str(len(data) - 1)
+        lastA = 'A' + str(len(data) - 1)
+        domain = ('A1', lastA)
+        chart_type = ChartType('LINE')
+        r = [('B2', lastB)]
+
+        print domain
+        print r
+        chart = wks.add_chart(domain, r, 'test', anchor_cell='A1', chart_type=chart_type)
+        print chart.get_json()
+
+    print sh.url
+    sh.share('', role='reader', type='anyone')
+    return
+
+    # Open spreadsheet and then workseet
+    wks = sh.sheet1
+    wks.update_values('A1', matrix)
+
+    # matrix = numpy.array(data[0].keys())
+    # matrix = numpy.array()
+    # wks.append_table())
+
+    # Update a cell with value (just to let him know values is updated ;) )
+    wks.update_value('A1', "Hey yank this numpy array")
+    my_nparray = np.random.randint(10, size=(3, 4))
+
+    # update the sheet with array
+    wks.update_values('A2', my_nparray.tolist())
+
+
 def main():
     # Parse args
     default_start_year = datetime.now().year - 1
@@ -169,6 +234,10 @@ def main():
     with open("generated_data.py", "w") as f:
         f.write("weather_data=")
         f.write(str(data))
+
+    print "Writing %d records to \'%s\'" % (len(data), args.output_file)
+    write_gsheet(args.output_file, data, args.start_date, args.end_date, args.num_years)
+    return
 
     print "Writing %d records to \'%s\'" % (len(data), args.output_file)
     write_csv(args.output_file, data)

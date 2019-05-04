@@ -3,6 +3,10 @@ P0:
 * Make stations an object? (Will be more important when dealing with additional sources)
   * Two things: 1) *generate* from file and 2) *load* from file
 * Combine into one script? (Will force some cleanup and good module separation)
+* Add checker for all the necessary config files (e.g. client_secrets, api tokens, etc.)
+* Remove duplicate weather stations...
+* Fix base charts, they only look good if column A is aggregated 
+* Include a view that is a summary / average by elevation 
 
 Pother
 * Support for trips longer than a week or so (polling API for longer may not work)
@@ -22,5 +26,4 @@ X Arrange data by:
  * Wks (datatype)
    * T1: All Data
    * T2: Rows: Days of Trip, Cols: One for all stations, One for each station
-
 

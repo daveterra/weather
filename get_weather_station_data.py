@@ -255,13 +255,18 @@ def write_gsheet(filename, ds):
     wks.update_values(dates_range, date_values)
 
     i = 1
-    ranges = []
+    temp_ranges = []
+    water_ranges = []
     for datatype in ds.get_data_types():
         col = str(chr(ord('A')+i))
         data_range = "%s%d:%s%d" % (col, 2, col, 2+num_dates)
+
         # Add for chart later
         data_range_tuple = ("%s%d" % (col, 1), "%s%d" % (col, 1+num_dates))
-        ranges.append(data_range_tuple)
+        if 'temp' in datatype:
+            temp_ranges.append(data_range_tuple)
+        else:
+            water_ranges.append(data_range_tuple)
 
         wks.update_row(1, [[datatype]], col_offset=i)
         d = ds.get_matrix_for_datatype_averaged(datatype)
@@ -271,7 +276,15 @@ def write_gsheet(filename, ds):
     anchor = str(chr(ord('A')+i)) + "1"
     chart_type = ChartType('LINE')
     domain = ('A1', 'A' + str(num_dates))
-    chart = wks.add_chart(domain, ranges, "averages", anchor_cell=anchor, chart_type=chart_type)
+    chart = wks.add_chart(domain, temp_ranges, "averages",
+            anchor_cell=anchor, chart_type=chart_type)
+
+    anchor = str(chr(ord('A')+i)) + "20"
+    chart_type = ChartType('LINE')
+    domain = ('A1', 'A' + str(num_dates))
+    chart = wks.add_chart(domain, water_ranges, "averages", 
+            anchor_cell=anchor, chart_type=chart_type)
+
 
     print sh.url
     sh.share('', role='reader', type='anyone')
@@ -310,10 +323,10 @@ def main():
     data_filter = ds.get_noaa_data_filter()
 
     # Loop over dates...
-    # data = loop_over_dates(args, stations, data_filter)
+    data = loop_over_dates(args, stations, data_filter)
 
-    import generated_data
-    data = generated_data.weather_data
+    # import generated_data
+    # data = generated_data.weather_data
     with open("generated_data.py", "w") as f:
         f.write("weather_data=")
         f.write(str(data))

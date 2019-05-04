@@ -92,8 +92,6 @@ def loop_over_dates(args, stations, data_filter):
     return weather_data
 
 def generate_meta_data(data):
-    #TODO: Generate metadata per station?
-    #data = filter(lambda d: d['datatype'] in ('TMAX', 'TMIN'), data)
     meta_data = []
 
     # Generate list of datatypes
@@ -206,7 +204,7 @@ class WeatherDataset():
                     count += 1
 
             current_date += one_day
-            ret.append([total/count])
+            ret.append([round(total/count, 2)])
         return ret
 
     def size(self):

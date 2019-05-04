@@ -1,20 +1,13 @@
 P0:
 * Auto generate the snow map based on coordinates
-* Better sorting of data...
-  * Does it make sense to make a CSV per datatype? Maybe PM will have an opinion
 * Make stations an object? (Will be more important when dealing with additional sources)
   * Two things: 1) *generate* from file and 2) *load* from file
-* Round the averages data
+* Combine into one script? (Will force some cleanup and good module separation)
 
 Pother
 * Support for trips longer than a week or so (polling API for longer may not work)
 * Add support for mesowest?
 * Print errors (like when can't find weather folder)
-
-Arrange data by: 
- * Wks (datatype)
-   * T1: All Data
-   * T2: Rows: Days of Trip, Cols: One for all stations, One for each station
 
 DONE:
 X More efficient API usage, e.g. poll for all stations at once
@@ -22,3 +15,12 @@ X Pass in only TMIN and TMAX to avoid filtering...
 X Put on github for my own sake
 X Make command line driven, e.g. support args
 X Fix the loop in get station data, should take date range not generate it...
+X Better sorting of data...
+  X Does it make sense to make a CSV per datatype? Maybe PM will have an opinion
+X Round the averages data
+X Arrange data by:
+ * Wks (datatype)
+   * T1: All Data
+   * T2: Rows: Days of Trip, Cols: One for all stations, One for each station
+
+

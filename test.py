@@ -45,8 +45,8 @@ def get_data_types():
 
 
 get_datasets()
-# get_data_types()
-# get_data_categories()
+get_data_types()
+get_data_categories()
 
 # location_categories = noaa.get_location_categories(sortfield='name')
 # print "LOCATION CATAGORIES"

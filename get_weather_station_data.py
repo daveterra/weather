@@ -13,6 +13,7 @@ from pygsheets.custom_types import ChartType
 import numpy
 
 from datetime import datetime
+from datetime import timedelta
 from dateutil import parser
 
 class WeatherData:
@@ -69,7 +70,7 @@ class WeatherData:
             offset += len(d)
         return data
 
-def loop_over_dates(args, stations):
+def loop_over_dates(args, stations, data_filter):
     w = WeatherData(config.noaa_api_token)
     cur_year = args.start_year
     num_days = args.end_date - args.start_date
@@ -81,7 +82,7 @@ def loop_over_dates(args, stations):
         start_date = "%s-%02d-%02d" % (cur_year, args.start_date.month, args.start_date.day)
         end_date = "%s-%02d-%02d" % (cur_year, args.end_date.month, args.end_date.day)
 
-        data = w.get_weather_data_from_stations(stations, start_date, end_date, args.data_types)
+        data = w.get_weather_data_from_stations(stations, start_date, end_date, data_filter)
         print "Received %d records for dates %s - %s" % (len(data), start_date, end_date)
 
         weather_data.extend(data)
@@ -132,17 +133,93 @@ def write_csv(filename, to_csv):
         dict_writer.writeheader()
         dict_writer.writerows(to_csv)
 
-def write_gsheet(filename, data):
+class WeatherDataset():
+    def __init__(self, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
+
+        self.datatypes = {
+                'min_temp' : { 'noaa' : 'TMIN' },
+                'max_temp' : { 'noaa' : 'TMAX' },
+                'avg_temp' : { 'noaa' : 'TAVG' },
+                'rain' : { 'noaa' : 'PRCP' },
+                'snow' : { 'noaa' : 'SNOW' },
+                'snow_depth' : { 'noaa' : 'SNWD' },
+                }
+
+        self.dataset = {}
+        for k in self.datatypes:
+            self.dataset[k] = []
+
+    def get_noaa_data_filter(self):
+        return [d['noaa'] for k, d in self.datatypes.items()]
+
+    def add_noaa_data(self, data):
+        noaa_map = { d['noaa'] : k for k,d in self.datatypes.items()}
+        noaa_filter = self.get_noaa_data_filter()
+        for d in data:
+            if d['datatype'] not in noaa_filter:
+                continue
+            fixed_date = parser.parse(d['date']).strftime("%Y-%m-%d")
+            row = { 'date' : fixed_date,
+                    'value' : d['value'],
+                    'elevation' : d['elevation'],
+                    'station_id': d['station']}
+            key = noaa_map[d['datatype']]
+            self.dataset[key].append(row)
+
+    def get_data_keys(self):
+        return ['date', 'value', 'elevation', 'station_id']
+
+    def get_date_keys(self):
+        current_date = self.start_date
+        one_day = timedelta(days=1)
+        ret = []
+        while current_date <= self.end_date:
+            ret.append([current_date.strftime("%m-%d")])
+            current_date += one_day
+        return ret
+
+    def get_data_types(self):
+        return [k for k in self.datatypes]
+
+    def get_matrix_for_datatype(self, datatype):
+        ret = []
+        for row in self.dataset[datatype]:
+            ret.append([row[k] for k in self.get_data_keys()])
+        return ret
+
+    def get_matrix_for_datatype_averaged(self, datatype):
+        # Should return a 1-d matrix (e.g. column)
+        current_date = self.start_date
+        one_day = timedelta(days=1)
+        ret = []
+
+        while current_date <= self.end_date:
+            total = 0
+            count = 0
+            for row in self.dataset[datatype]:
+                this_date = parser.parse(row['date'])
+                if (this_date.day == current_date.day
+                        and this_date.month == current_date.month):
+                    total += row['value']
+                    count += 1
+
+            current_date += one_day
+            ret.append([total/count])
+        return ret
+
+    def size(self):
+        ret = 0
+        for k, v in self.dataset.items():
+            ret += len(v)
+        return ret
+
+
+def write_gsheet(filename, ds):
+
     matrix = {}
-    keys = ['date', 'value', 'station', 'elevation']
-
-    for i in data:
-        datatype = i['datatype']
-        if datatype not in matrix:
-            matrix[datatype] = [keys]
-        row = [i[k] for k in keys]
-        matrix[datatype].append(row)
-
+    keys = ds.get_data_keys()
 
     gc = pygsheets.authorize()
 
@@ -155,11 +232,13 @@ def write_gsheet(filename, data):
     sh = gc.create(filename)
 
     index=0
-    for datatype, data in matrix.items():
+
+    for datatype in ds.get_data_types():
 
         wks = sh.add_worksheet(datatype, index=index)
         index += 1
 
+        data = ds.get_matrix_for_datatype(datatype)
         wks.update_values('A1', data)
 
         lastB = 'B' + str(len(data) - 1)
@@ -168,30 +247,37 @@ def write_gsheet(filename, data):
         chart_type = ChartType('LINE')
         r = [('B2', lastB)]
 
-        print domain
-        print r
-        chart = wks.add_chart(domain, r, 'test', anchor_cell='A1', chart_type=chart_type)
-        print chart.get_json()
+        chart = wks.add_chart(domain, r, datatype, anchor_cell='A1', chart_type=chart_type)
+
+    # Add metadata
+    wks = sh.add_worksheet("Averages", index=0)
+    date_values = ds.get_date_keys()
+    num_dates   = len(date_values) + 1
+    dates_range = 'A2:A' + str(num_dates)
+    wks.update_values(dates_range, date_values)
+
+    i = 1
+    ranges = []
+    for datatype in ds.get_data_types():
+        col = str(chr(ord('A')+i))
+        data_range = "%s%d:%s%d" % (col, 2, col, 2+num_dates)
+        # Add for chart later
+        data_range_tuple = ("%s%d" % (col, 1), "%s%d" % (col, 1+num_dates))
+        ranges.append(data_range_tuple)
+
+        wks.update_row(1, [[datatype]], col_offset=i)
+        d = ds.get_matrix_for_datatype_averaged(datatype)
+        wks.update_values( data_range, d )
+        i += 1
+
+    anchor = str(chr(ord('A')+i)) + "1"
+    chart_type = ChartType('LINE')
+    domain = ('A1', 'A' + str(num_dates))
+    chart = wks.add_chart(domain, ranges, "averages", anchor_cell=anchor, chart_type=chart_type)
 
     print sh.url
     sh.share('', role='reader', type='anyone')
     return
-
-    # Open spreadsheet and then workseet
-    wks = sh.sheet1
-    wks.update_values('A1', matrix)
-
-    # matrix = numpy.array(data[0].keys())
-    # matrix = numpy.array()
-    # wks.append_table())
-
-    # Update a cell with value (just to let him know values is updated ;) )
-    wks.update_value('A1', "Hey yank this numpy array")
-    my_nparray = np.random.randint(10, size=(3, 4))
-
-    # update the sheet with array
-    wks.update_values('A2', my_nparray.tolist())
-
 
 def main():
     # Parse args
@@ -213,21 +299,20 @@ def main():
     parser.add_argument("-y", "--start-year",
             required=False, default=default_start_year, type=int,
             help="The number of years to include in results")
-    parser.add_argument("-d", "--data-types",
-            nargs="+", required=False,
-            help="Space separated list of NOAA datatypes to filter on, if left blank will grab all available data")
     parser.add_argument("-m", "--meta-data-filename",
             required=False,
             help="Generate metadata as part of CSV output (min, max, avg for each datatype)")
 
     args = parser.parse_args()
-    print args.data_types
 
     stations = my_utils.get_station_list_from_file(args.input_file)
     print "Read %d stations from \'%s\'" % (len(stations), args.input_file)
 
+    ds = WeatherDataset(args.start_date, args.end_date)
+    data_filter = ds.get_noaa_data_filter()
+
     # Loop over dates...
-    # data = loop_over_dates(args, stations)
+    # data = loop_over_dates(args, stations, data_filter)
 
     import generated_data
     data = generated_data.weather_data
@@ -235,8 +320,10 @@ def main():
         f.write("weather_data=")
         f.write(str(data))
 
-    print "Writing %d records to \'%s\'" % (len(data), args.output_file)
-    write_gsheet(args.output_file, data, args.start_date, args.end_date, args.num_years)
+    ds.add_noaa_data(data)
+
+    print "Writing %d records to \'%s\'" % (ds.size(), args.output_file)
+    write_gsheet(args.output_file, ds)
     return
 
     print "Writing %d records to \'%s\'" % (len(data), args.output_file)

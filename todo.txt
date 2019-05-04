@@ -4,7 +4,7 @@ P0:
   * Does it make sense to make a CSV per datatype? Maybe PM will have an opinion
 * Make stations an object? (Will be more important when dealing with additional sources)
   * Two things: 1) *generate* from file and 2) *load* from file
-
+* Round the averages data
 
 Pother
 * Support for trips longer than a week or so (polling API for longer may not work)

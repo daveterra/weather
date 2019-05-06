@@ -13,7 +13,7 @@ def main(argv):
     parser.add_argument('-o', '--output-file',
             help="Generates separate GEOJson file specifying nearby NOAA weather stations")
     parser.add_argument('-d', '--distance-from-trail',
-            required=False, default=10,
+            required=False, default=15.0, type=float,
             help="Specify how far from the trail (in km) to look for weather stations")
     args = parser.parse_args()
 

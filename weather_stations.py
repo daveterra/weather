@@ -38,13 +38,38 @@ class StationGenerator:
                 return True
         return False
 
-    def generate_station_list(self, coord_list, min_distance=10):
+    def _fix_extent(self, min_coord, max_coord, min_distance):
+
+        # Not perfect, but treet this as effectively "diameter of circle"
+        d = (my_utils.distance(min_coord['lat'], min_coord['long'],
+                max_coord['lat'], max_coord['long'])/2)
+
+        delta = min_distance - d
+        if delta < 0:
+            return
+
+        factor = ((min_distance-d)/ d)/100
+
+        min_coord['lat']  -= min_coord['lat']* (factor/10)
+        min_coord['long'] += min_coord['long']*(factor/10)
+        max_coord['lat']  += max_coord['lat']* (factor/10)
+        max_coord['long'] -= max_coord['long']*(factor/10)
+
+        d2 = my_utils.distance(min_coord['lat'], min_coord['long'],
+                max_coord['lat'], max_coord['long'])
+
+        return min_coord, max_coord
+
+    def generate_station_list(self, coord_list, min_distance):
 
         min_coord, max_coord = self._get_min_max(coord_list)
+
+        min_coord, max_coord = self._fix_extent(min_coord, max_coord, min_distance)
         extent= "%s, %s, %s, %s" % (min_coord['lat'],
                 min_coord['long'],
                 max_coord['lat'],
                 max_coord['long'])
+
         steps = 10
         offset = 0
         while True:
@@ -59,7 +84,7 @@ class StationGenerator:
             for i in locations:
                 if self._meets_min_distance(i, coord_list, min_distance):
                     #convert meters to feet if applicable
-                    if i['elevationUnit'] == 'METERS':
+                    if 'eleveationUnit' in i.keys() and i['elevationUnit'] == 'METERS':
                         m = float(i['elevation'])
                         f = my_utils.meters_to_feet(m)
                         i['elevation'] = str(f)

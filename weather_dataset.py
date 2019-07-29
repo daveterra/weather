@@ -1,8 +1,17 @@
+from dateutil import parser
+from datetime import timedelta
+from datetime import datetime
+from datetime import date
+
+import noaa_api
+import meso_api
 
 class WeatherDataset():
-    def __init__(self, start_date, end_date):
+    def __init__(self, start_date, end_date, noaa_api_token, meso_api_token):
         self.start_date = start_date
         self.end_date = end_date
+        self.noaa_api_token = noaa_api_token
+        self.meso_api_token = meso_api_token
 
         self.datatypes = {
                 'min_temp' : { 'noaa' : 'TMIN' },
@@ -72,8 +81,50 @@ class WeatherDataset():
                     count += 1
 
             current_date += one_day
-            ret.append([round(total/count, 2)])
+            if count:
+                ret.append([round(total/count, 2)])
+            else:
+                ret.append([0.0])
         return ret
+
+    def download_weather_data(self, stations, start_year, num_years):
+        nw = noaa_api.NOAAWeatherData(self.noaa_api_token)
+        mw = meso_api.MesoWeatherData(self.meso_api_token)
+
+        cur_year = start_year
+        num_days = self.end_date - self.start_date
+        num_years = num_years
+
+        noaa_stations = [s for s in stations if s['api'] == 'NOAA']
+        meso_stations = [s for s in stations if s['api'] == 'MESO']
+        print meso_stations
+
+        #TODO: Handle cases where number of days matters...
+        while num_years > 0:
+
+            start_date = date(cur_year, self.start_date.month, self.start_date.day)
+            end_date = date(cur_year, self.end_date.month, self.end_date.day)
+
+            # data = mw.get_weather_data_from_stations(meso_stations, start_date, end_date)
+            # print "Received %d MESOrecords for dates %s - %s" % (len(data), start_date, end_date)
+            # self.add_meso_data(data)
+
+            data = nw.get_weather_data_from_stations(noaa_stations, start_date, end_date)
+            print "Received %d NOAA records for dates %s - %s" % (len(data), start_date, end_date)
+            self.add_noaa_data(data)
+
+            num_years -= 1
+            cur_year -= 1
+
+    def dump_raw_data_to_file(self, filename):
+        import generated_data
+        data = generated_data.weather_data
+        with open(filename, "w") as f:
+            f.write("weather_data=")
+            f.write(str(self.dataset))
+
+    def read_raw_data_from_file(self, filename):
+        pass
 
     def size(self):
         ret = 0

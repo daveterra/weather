@@ -1,3 +1,4 @@
+
 import csv
 import pygsheets
 from pygsheets.custom_types import ChartType
@@ -26,6 +27,9 @@ def write_gsheet(filename, ds):
         index += 1
 
         data = ds.get_matrix_for_datatype(datatype)
+        if not data:
+            continue
+
         wks.update_values('A1', data)
 
         lastB = 'B' + str(len(data) - 1)
@@ -71,7 +75,7 @@ def write_gsheet(filename, ds):
     anchor = str(chr(ord('A')+i)) + "20"
     chart_type = ChartType('LINE')
     domain = ('A1', 'A' + str(num_dates))
-    chart = wks.add_chart(domain, water_ranges, "averages", 
+    chart = wks.add_chart(domain, water_ranges, "averages",
             anchor_cell=anchor, chart_type=chart_type)
 
 

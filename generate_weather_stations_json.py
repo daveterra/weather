@@ -20,7 +20,7 @@ def main(argv):
     print "Reading file \'%s\'"  % (args.input_file)
     lat_long_list = my_utils.get_lat_long_list_from_file(args.input_file)
 
-    s = StationGenerator(config.noaa_api_token)
+    s = StationGenerator(config.noaa_api_token, config.meso_api_token)
 
     s.generate_station_list(lat_long_list, min_distance=args.distance_from_trail)
     print "Retrieved %d stations" % (len(s.station_list))

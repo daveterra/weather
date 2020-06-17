@@ -13,7 +13,7 @@ class NOAA:
 
         if not r.ok:
             print("Error: " + str(r.status_code))
-            print r.content
+            print(r.content)
             return None
         else:
             r = r.json()
@@ -92,8 +92,8 @@ class NOAAWeatherData:
     def get_weather_data_from_stations(self, stations, start_date, end_date):
         data = []
 
-        print start_date
-        print end_date
+        print( start_date)
+        print( end_date)
 
         num_stations = len(stations)
         cur_station_num = 1
@@ -119,7 +119,7 @@ class NOAAWeatherData:
                     limit=limit,
                     offset=offset)
             if d is None:
-                print "\tRequest failed, retrying"
+                print("\tRequest failed, retrying")
                 continue
 
             if len(d) <= 0:

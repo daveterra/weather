@@ -97,8 +97,8 @@ class StationGenerator:
                 max_coord['long'],
                 max_coord['lat'])
         locations = self.meso_api.get_station_metadata(bbox=bbox)
-        print bbox
-        print len(locations['STATION'])
+        print( bbox)
+        print( len(locations['STATION']))
         for l in locations['STATION']:
             new_location = {}
             new_location['api']  = 'MESO'

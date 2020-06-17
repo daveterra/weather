@@ -1,15 +1,14 @@
-
 import csv
+import os
 import pygsheets
 from pygsheets.custom_types import ChartType
-
 
 def write_gsheet(filename, ds):
 
     matrix = {}
     keys = ds.get_data_keys()
 
-    gc = pygsheets.authorize()
+    gc = pygsheets.authorize(client_secret='/Users/dave/code/weather/client_secret.json')
 
     try:
         sh = gc.open(filename)
@@ -79,8 +78,46 @@ def write_gsheet(filename, ds):
             anchor_cell=anchor, chart_type=chart_type)
 
 
-    print sh.url
+    print(sh.url)
     sh.share('', role='reader', type='anyone')
+    return
+
+def write_csvs(foldername, ds):
+    matrix = {}
+    keys = ds.get_data_keys()
+
+    index=0
+    if not os.path.isdir(foldername):
+        os.makedirs(foldername)
+
+    for datatype in ds.get_data_types():
+        filename=foldername + datatype + ".csv"
+        keys = ds.get_data_keys()
+        print(filename)
+        with open(filename, 'w', newline='') as out:
+            data = ds.get_matrix_for_datatype(datatype)
+            writer = csv.writer(out)
+            writer.writerow(keys)
+            if not data:
+                continue
+            writer.writerows(data)
+
+    filename = foldername + "averages.csv"
+    with open(filename, 'w', newline='') as out: 
+        data = ds.get_matrix_for_datatype_averaged(datatype)
+        writer = csv.writer(out)
+        writer.writerows(data)
+
+
+
+    # Add metadata
+    # file = foldername/averages
+    # wks = sh.add_worksheet("Averages", index=0)
+    # date_values = ds.get_date_keys()
+    # num_dates   = len(date_values) + 1
+    # dates_range = 'A2:A' + str(num_dates)
+    # wks.update_values(dates_range, date_values)
+
     return
 
 def write_csv(filename, to_csv):

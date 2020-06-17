@@ -97,7 +97,7 @@ class WeatherDataset():
 
         noaa_stations = [s for s in stations if s['api'] == 'NOAA']
         meso_stations = [s for s in stations if s['api'] == 'MESO']
-        print meso_stations
+        print(meso_stations)
 
         #TODO: Handle cases where number of days matters...
         while num_years > 0:
@@ -110,21 +110,21 @@ class WeatherDataset():
             # self.add_meso_data(data)
 
             data = nw.get_weather_data_from_stations(noaa_stations, start_date, end_date)
-            print "Received %d NOAA records for dates %s - %s" % (len(data), start_date, end_date)
+            print("Received %d NOAA records for dates %s - %s" % (len(data), start_date, end_date))
             self.add_noaa_data(data)
 
             num_years -= 1
             cur_year -= 1
 
     def dump_raw_data_to_file(self, filename):
-        import generated_data
-        data = generated_data.weather_data
         with open(filename, "w") as f:
             f.write("weather_data=")
             f.write(str(self.dataset))
 
     def read_raw_data_from_file(self, filename):
-        pass
+        import generated_data
+        data = generated_data.weather_data
+        self.dataset = data
 
     def size(self):
         ret = 0

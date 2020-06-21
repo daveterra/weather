@@ -3,6 +3,7 @@ import my_utils
 import weather_dataset
 import weather_stations
 import sheets
+import os
 
 from datetime import datetime
 from datetime import timedelta
@@ -11,18 +12,18 @@ from dateutil import parser
 
 # INPUT DATA
 #============
-CALTOPO_INPUT_FILE = "crater_lake.json"
-CALTOPO_STATION_OUTPUT_FILE = "crater_lake_weather_stations.json"
-GOOGLE_SHEET_OUTPUT_FILE="crater_lake_generated_weather"
-CSV_OUTPUT_FOLDER="crater_lake_generated_weather/"
+CALTOPO_INPUT_FILE = "Lassen_June_2020.json"
+CALTOPO_STATION_OUTPUT_FILE = "Lassen_June_2020_weather_stations.json"
+GOOGLE_SHEET_OUTPUT_FILE="Lassen_June_2020_generated_weather"
+OUTPUT_FOLDER="Lassen_June_2020_generated_weather/"
 
 # Only include stations that are within this distance from any given point on trail
 # in kilometers
 DISTANCE_FROM_TRAIL=50
 
 #Dates are in the format of MM-DD
-TRIP_START_DATE="07/01"
-TRIP_END_DATE="07/09"
+TRIP_START_DATE="06/19"
+TRIP_END_DATE="06/22"
 
 DATA_START_YEAR = 2018
 DATA_NUM_YEARS = 10
@@ -34,13 +35,16 @@ def main():
     print ("Reading file \'%s\'"  % (CALTOPO_INPUT_FILE))
     lat_long_list = my_utils.get_lat_long_list_from_file(CALTOPO_INPUT_FILE)
 
+    if not os.path.isdir(OUTPUT_FOLDER):
+        os.makedirs(OUTPUT_FOLDER)
+
     s = weather_stations.StationGenerator(config.noaa_api_token, config.meso_api_token)
 
     s.generate_station_list(lat_long_list, min_distance=DISTANCE_FROM_TRAIL)
     print("Retrieved %d stations" % (len(s.station_list)))
 
-    print("Writing station information to \'%s\'" % (CALTOPO_STATION_OUTPUT_FILE))
-    s.write_features_to_file(CALTOPO_STATION_OUTPUT_FILE)
+    print("Writing station information to \'%s\'" % (OUTPUT_FOLDER + CALTOPO_STATION_OUTPUT_FILE))
+    s.write_features_to_file(OUTPUT_FOLDER + CALTOPO_STATION_OUTPUT_FILE)
 
     stations = s.station_list
 
@@ -59,8 +63,8 @@ def main():
     print("Writing %d records to \'%s\'" % (ds.size(), GOOGLE_SHEET_OUTPUT_FILE))
     #sheets.write_gsheet(GOOGLE_SHEET_OUTPUT_FILE, ds)
 
-    print("Writing %d records to \'%s\'" % (ds.size(), CSV_OUTPUT_FOLDER))
-    sheets.write_csvs(CSV_OUTPUT_FOLDER, ds)
+    print("Writing %d records to \'%s\'" % (ds.size(), OUTPUT_FOLDER))
+    sheets.write_csvs(OUTPUT_FOLDER, ds)
 
     return
 
